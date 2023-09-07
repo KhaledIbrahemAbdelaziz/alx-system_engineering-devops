@@ -1,21 +1,44 @@
 #!/usr/bin/env bash
-# Show information about subdomains in servers
-print_domain () {
-    result=$(dig "$1"."$2" | awk '/;; ANSWER SECTION:/{getline; print;}')
-    echo -n "The subdomain $1 is a "
-    record=$(echo "$result" | rev | cut -f2 | rev )
-    echo -n "$record record and points to "
-    echo "$result" | rev | cut -f1 | rev
-    return 0
+# Configure my domain zone:
+# www --> 914-lb-01 3.83.192.251
+# web-01 --> 914-web-01 18.205.38.219
+# web-02 --> 914-web-02 34.138.16.188
 
+# -- To be evaluated --
+# domain_information () {
+#     line=$(dig "$2"."$1" | grep -A1 'ANSWER SECTION:' | tr '\t' '\n' | tail -2 | tr '\n' ' ')
+#     echo "$2 $line" | awk '{print "The subdomain " $1 " is a " $2 " record and points to " $3}'
+# }
+
+# if [ "$#" == 1 ]
+# then
+#   domain_information "$1" "www"
+#   domain_information "$1" "lb-01"
+#   domain_information "$1" "web-01"
+#   domain_information "$1" "web-02"
+# elif [ "$#" == 2 ]
+# then
+#   domain_information "$1" "$2"
+# fi
+#-- To be evaluated --
+
+subdomains_all=( "www" "lb-01" "web-01" "web-02" )
+
+runDig () {
+    subdomain=$1
+    domain=$2
+
+    dig "$subdomain.$domain" | grep -A1 'ANSWER SECTION:' | tail -1 | awk -v s="$subdomain" 'BEGIN { FS = " " } ; { print "The subdomain " s " is a " $4 " record and points to " $5 }'
 }
-if [ $# -eq 1 ]
-then
-    domain_array=(www lb-01 web-01 web-02)
-    for i in "${domain_array[@]}"
+
+if [ $# -eq 1 ]; then
+    domain="$1"
+    for i in "${subdomains_all[@]}"
     do
-	print_domain "$i" "$1"
+	runDig "$i" "$domain"
     done
-else
-    print_domain "$2" "$1"
+elif [ $# -eq 2 ]; then
+    domain="$1"
+    subdomain="$2"
+    runDig "$subdomain" "$domain"
 fi
